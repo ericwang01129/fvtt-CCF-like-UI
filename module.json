@@ -1,0 +1,41 @@
+{
+  "id": "ccf-ui-v11",
+  "title": "CCF-like UI (v11)",
+  "description": "Simplifies the player UI to a CCF-like layout: configurable per-tab sidebar visibility (defaults to Chat / Actors / Settings), hides the left scene-controls toolbar, locks the canvas to Token-Select, and forces Simple Message Window's toggle to always-on.",
+  "authors": [
+    {
+      "name": "ericwang01129"
+    }
+  ],
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "11",
+    "verified": "11.315",
+    "maximum": "12"
+  },
+  "esmodules": [
+    "scripts/ccf-ui.mjs",
+    "scripts/ccf-mobile.mjs",
+    "scripts/ccf-backdrop.mjs",
+    "scripts/ccf-import.mjs"
+  ],
+  "styles": [
+    "styles/ccf-ui.css",
+    "styles/ccf-mobile.css",
+    "styles/ccf-backdrop.css",
+    "styles/ccf-import.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "zh-tw",
+      "name": "正體中文",
+      "path": "lang/zh-tw.json"
+    }
+  ],
+  "socket": false
+}

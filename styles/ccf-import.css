@@ -1,0 +1,19 @@
+/* ccf-import.css — styling for the "Import CCF Room" button injected into
+   the Scenes sidebar tab by ccf-import.mjs. */
+
+.ccf-import-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: calc(100% - 8px);
+    margin: 4px;
+    padding: 4px 8px;
+    font-size: var(--font-size-13, 13px);
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.ccf-import-btn i {
+    opacity: 0.85;
+}

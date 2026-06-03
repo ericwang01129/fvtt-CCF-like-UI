@@ -1,0 +1,19 @@
+/* ccf-backdrop.css — Scene Config dialog styling for the injected
+   "Backdrop image" field. The actual backdrop is rendered inside the
+   PIXI canvas (see ccf-backdrop.mjs), so no element-level styling for
+   #ccf-backdrop is needed here. */
+
+.ccf-backdrop-row .form-fields {
+    align-items: center;
+}
+
+.ccf-backdrop-row input.image {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ccf-backdrop-row .notes {
+    margin-top: 4px;
+    font-size: var(--font-size-12, 12px);
+    opacity: 0.85;
+}

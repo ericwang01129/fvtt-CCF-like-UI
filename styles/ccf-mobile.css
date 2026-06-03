@@ -1,0 +1,212 @@
+/* ccf-mobile.css — mobile-mode layout (body.ccf-ui-mobile).
+   Top half of viewport: full canvas (script pans/scales it).
+   Bottom half: chat sidebar wrapped in #ccf-chat-frame (rounded-top panel,
+     bottom flush to viewport, 1.5-line input + send button row).
+   Top-right overlay: Stylish Action HUD action list (#ib-action-root). */
+
+/* --- Hide UI bits that don't fit on mobile. -------------------------------
+   #navigation is preserved for players so they can still switch scenes; only
+   the GM's nav bar is hidden in mobile mode. */
+body.ccf-ui-mobile #players,
+body.ccf-ui-mobile #hotbar,
+body.ccf-ui-mobile #logo,
+body.ccf-ui-mobile.ccf-ui-gm #navigation {
+    display: none !important;
+}
+
+/* --- Sidebar fills the bottom half across full viewport width, flush with
+       the viewport bottom. The chat-bottom frame inside provides its own
+       internal bottom padding so the input/send button aren't right at the
+       edge. ----------------------------------------------------------------- */
+body.ccf-ui-mobile #sidebar {
+    position: fixed !important;
+    top: 50vh !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 50vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    z-index: 50;
+}
+
+/* Horizontal divider between the canvas (top half) and the chat sidebar
+   (bottom half). Mirrors the sidebar header accent: thin cyan line with a
+   soft glow above. Drawn as a fixed overlay so it sits above the canvas
+   and the sidebar without affecting either's box model. */
+body.ccf-ui-mobile::before {
+    content: "";
+    position: fixed;
+    top: calc(50vh - 1px);
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(120, 200, 255, 0.85) 20%,
+        rgba(120, 200, 255, 0.85) 80%,
+        transparent 100%
+    );
+    box-shadow:
+        0 0 6px rgba(120, 200, 255, 0.8),
+        0 -2px 10px rgba(120, 200, 255, 0.35);
+    z-index: 55;
+    pointer-events: none;
+}
+
+/* Force the sidebar expanded — collapsed state would hide chat. */
+body.ccf-ui-mobile #sidebar.collapsed {
+    width: 100vw !important;
+    max-width: 100vw !important;
+}
+
+/* Hide the sidebar tab nav on mobile — chat is the only relevant view. */
+body.ccf-ui-mobile #sidebar-tabs {
+    display: none !important;
+}
+
+/* Make the chat tab fill the sidebar. */
+body.ccf-ui-mobile #sidebar > section.sidebar-tab#chat {
+    display: flex !important;
+    flex-direction: column;
+    height: 100% !important;
+    width: 100% !important;
+}
+body.ccf-ui-mobile #chat-log {
+    flex: 1 1 auto;
+    overflow-y: auto;
+}
+
+/* --- Hide the dice-calculator tray in mobile mode (and its in-chat toggle,
+       which is already covered by hiding #chat-controls). The tray itself can
+       render inside #chat-form too, so target it directly. ------------------ */
+body.ccf-ui-mobile .dice-calculator,
+body.ccf-ui-mobile #dice-calculator,
+body.ccf-ui-mobile .dice-tray,
+body.ccf-ui-mobile #dice-tray {
+    display: none !important;
+}
+
+/* --- Chat-bottom frame — wraps #chat-controls + #chat-form + dice-tray with
+       a panel that has rounded top corners and bottom flush with the
+       viewport. In mobile mode chat-controls and dice-tray are hidden, so
+       the frame visually contains just the chat input row. ----------------- */
+body.ccf-ui-mobile #ccf-chat-frame {
+    display: flex !important;
+    flex-direction: column;
+    flex: 0 0 auto;
+    margin: 0 !important;
+    /* Bottom padding keeps the input/send button from sitting right against
+       the viewport edge (covers iOS home-indicator / browser chrome too). */
+    padding: 8px 8px calc(10px + env(safe-area-inset-bottom, 0px)) 8px;
+    border: 1px solid rgba(120, 180, 255, 0.5);
+    border-bottom: none;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    background: rgba(15, 22, 35, 0.6);
+    box-sizing: border-box;
+}
+body.ccf-ui-mobile #ccf-chat-frame > #chat-form {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+/* --- Chat input row layout: [textarea] [send button]. Both stretch to the
+       same height (3em ≈ ~48px tall) so the input matches the send button. */
+body.ccf-ui-mobile #chat-form {
+    flex: 0 0 auto;
+    display: flex !important;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 6px;
+    box-sizing: border-box;
+    overflow: visible;
+}
+body.ccf-ui-mobile #chat-message,
+body.ccf-ui-mobile textarea#chat-message {
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    height: 3em !important;
+    min-height: 3em !important;
+    max-height: 3em !important;
+    resize: none !important;
+    overflow-y: auto;
+    line-height: 1.5;
+    font-size: 1em;
+    padding: 6px 10px;
+}
+
+/* --- Send button — visible only in mobile mode. -------------------------- */
+#ccf-mobile-send {
+    display: none;
+}
+body.ccf-ui-mobile #ccf-mobile-send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 48px;
+    min-width: 48px;
+    box-sizing: border-box;
+    height: 3em;
+    min-height: 3em;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+    background: rgba(40, 60, 90, 0.8);
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.1em;
+    padding: 0;
+    line-height: 1;
+}
+body.ccf-ui-mobile #ccf-mobile-send:hover,
+body.ccf-ui-mobile #ccf-mobile-send:active {
+    background: rgba(60, 90, 130, 0.95);
+    border-color: rgba(255, 255, 255, 0.7);
+}
+body.ccf-ui-mobile #ccf-mobile-send > i {
+    pointer-events: none;
+}
+
+/* --- Stylish Action HUD — show only the action menu (action list), not the
+       character-portrait stack. Pinned to TOP-RIGHT and forcibly compressed
+       horizontally so it occupies less width on the canvas overlay. -------- */
+body.ccf-ui-mobile #ib-hud-layer {
+    display: none !important;
+}
+body.ccf-ui-mobile #ib-action-root {
+    --am-scale: var(--ccf-mobile-sah-scale, 0.55);
+    position: fixed !important;
+    top: 8px !important;
+    /* Small inset so the SAH border isn't clipped by the viewport edge. */
+    right: 12px !important;
+    left: auto !important;
+    bottom: auto !important;
+    z-index: 100 !important;
+    pointer-events: auto !important;
+    width: auto !important;
+    max-width: 60vw !important;
+    max-height: 45vh !important;
+    /* Force horizontal squeeze on top of SAH's own zoom-based scaling.
+       transform-origin top-right keeps the right edge anchored. */
+    transform: scaleX(var(--ccf-mobile-sah-squeeze, 0.65));
+    transform-origin: top right;
+    align-items: flex-end !important;
+    justify-content: flex-start !important;
+}
+
+/* --- Top half = canvas viewport. Foundry's canvas already covers the whole
+       page; the script pans the scene so its center lands at H/4 (middle of
+       the top half). -------------------------------------------------------- */
+body.ccf-ui-mobile #ui-top,
+body.ccf-ui-mobile #ui-left {
+    pointer-events: none;
+}
+body.ccf-ui-mobile #ui-left > * {
+    pointer-events: auto;
+}

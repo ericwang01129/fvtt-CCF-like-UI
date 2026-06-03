@@ -1,0 +1,126 @@
+/* ccf-ui.css — core layout (body.ccf-ui-active and chat-controls tweaks).
+   Mobile-mode rules live in ./ccf-mobile.css. */
+
+/* 1. Hide the left scene-controls toolbar entirely. */
+body.ccf-ui-active #controls {
+    display: none !important;
+}
+
+/* The scene-controls block sits inside #ui-left alongside #navigation; collapse
+   the empty space it leaves behind so the canvas is not pushed sideways. */
+body.ccf-ui-active #ui-left {
+    pointer-events: none;
+}
+body.ccf-ui-active #ui-left > #navigation {
+    pointer-events: auto;
+}
+
+/* Make sure the scene navigation bar stays visible & interactive for players
+   on desktop, even though we hide #controls and zero out #ui-left's pointer
+   events above. Scoped to non-GM so the GM's own UI is unaffected. */
+body.ccf-ui-active:not(.ccf-ui-gm) #navigation {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+body.ccf-ui-active:not(.ccf-ui-gm) #navigation * {
+    pointer-events: auto;
+}
+
+/* 2. Sidebar: per-tab visibility is driven by the module's settings.
+      Foundry sidebar nav is <a class="item" data-tab="..."> inside
+      #sidebar-tabs, and each expanded panel is a <section> under #sidebar
+      with id="<tab>". ccf-ui.mjs adds a `ccf-hide-<tab>` body class for
+      every tab whose "Show sidebar tab" setting is off; the rules below
+      then hide both the nav item and the panel. The Settings tab has no
+      setting and is always kept. */
+body.ccf-ui-active.ccf-hide-chat       #sidebar-tabs > [data-tab="chat"],
+body.ccf-ui-active.ccf-hide-chat       #sidebar > section.sidebar-tab#chat,
+body.ccf-ui-active.ccf-hide-combat     #sidebar-tabs > [data-tab="combat"],
+body.ccf-ui-active.ccf-hide-combat     #sidebar > section.sidebar-tab#combat,
+body.ccf-ui-active.ccf-hide-scenes     #sidebar-tabs > [data-tab="scenes"],
+body.ccf-ui-active.ccf-hide-scenes     #sidebar > section.sidebar-tab#scenes,
+body.ccf-ui-active.ccf-hide-actors     #sidebar-tabs > [data-tab="actors"],
+body.ccf-ui-active.ccf-hide-actors     #sidebar > section.sidebar-tab#actors,
+body.ccf-ui-active.ccf-hide-items      #sidebar-tabs > [data-tab="items"],
+body.ccf-ui-active.ccf-hide-items      #sidebar > section.sidebar-tab#items,
+body.ccf-ui-active.ccf-hide-journal    #sidebar-tabs > [data-tab="journal"],
+body.ccf-ui-active.ccf-hide-journal    #sidebar > section.sidebar-tab#journal,
+body.ccf-ui-active.ccf-hide-tables     #sidebar-tabs > [data-tab="tables"],
+body.ccf-ui-active.ccf-hide-tables     #sidebar > section.sidebar-tab#tables,
+body.ccf-ui-active.ccf-hide-cards      #sidebar-tabs > [data-tab="cards"],
+body.ccf-ui-active.ccf-hide-cards      #sidebar > section.sidebar-tab#cards,
+body.ccf-ui-active.ccf-hide-playlists  #sidebar-tabs > [data-tab="playlists"],
+body.ccf-ui-active.ccf-hide-playlists  #sidebar > section.sidebar-tab#playlists,
+body.ccf-ui-active.ccf-hide-compendium #sidebar-tabs > [data-tab="compendium"],
+body.ccf-ui-active.ccf-hide-compendium #sidebar > section.sidebar-tab#compendium {
+    display: none !important;
+}
+
+/* 3. The Simple Message Window module appends its own toggle button into
+      #controls; since #controls is hidden, the player cannot accidentally
+      flip it. The script side keeps `smwEnable` pinned to true. */
+
+/* 4. Stretch the remaining (visible) sidebar tabs so they fill the top of
+      the sidebar evenly. Foundry's #sidebar-tabs is a flex row; each tab
+      <a class="item"> stretches with flex:1. Tabs hidden by rule 2 drop out
+      of the flex flow, so the visible ones share the width evenly. The hide
+      rules above out-specify this block, so they always win. */
+body.ccf-ui-active #sidebar-tabs {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+body.ccf-ui-active #sidebar-tabs > [data-tab] {
+    flex: 1 1 0;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    max-width: none;
+    min-width: 0;
+}
+
+/* 4b. Hide the roll-mode privacy buttons (df-chat-enhance: #dfcp-rt-buttons —
+       publicroll / gmroll / blindroll / selfroll) and the standard chat-control
+       dice icon. Applied for both GM and players regardless of `applyToGM`. */
+#dfcp-rt-buttons,
+#chat-controls .chat-control-icon,
+#chat-controls a.chat-control-icon {
+    display: none !important;
+}
+
+/* 4c. Right-align the remaining chat-control buttons (save / trash / GIF /
+       emoji / image-upload) with a small gap between them. #chat-controls is
+       Foundry's flex row that holds these per-module additions.
+       Only applied to non-CCF-UI sessions (i.e. GM by default); the player
+       side hides the entire row below. */
+body:not(.ccf-ui-active) #chat-controls {
+    display: flex !important;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 24px;
+    padding-right: 8px;
+}
+body:not(.ccf-ui-active) #chat-controls > *:not(.hidden):not([style*="display: none"]) {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* 4d. On the player (CCF-UI) side, hide the whole chat-controls row entirely. */
+body.ccf-ui-active #chat-controls {
+    display: none !important;
+}
+
+/* 5. Pin the player list to the bottom-left corner of the viewport.
+      Default Foundry already anchors #players bottom-left, but other modules
+      (or hotbar layouts) sometimes shift it; force the position explicitly. */
+body.ccf-ui-active #players {
+    position: fixed !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    right: auto !important;
+    z-index: 60;
+}
