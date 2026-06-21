@@ -37,5 +37,8 @@
       "path": "lang/zh-tw.json"
     }
   ],
-  "socket": false
+  "socket": false,
+  "url": "https://github.com/ericwang01129/fvtt-CCF-like-UI",
+  "manifest": "https://raw.githubusercontent.com/ericwang01129/fvtt-CCF-like-UI/main/module.json",
+  "download": "https://github.com/ericwang01129/fvtt-CCF-like-UI/archive/refs/heads/main.zip"
 }

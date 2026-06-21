@@ -114,9 +114,20 @@ GM 可在 **場景目錄** 上方看到「匯入 CCF 房間」按鈕，選擇 CC
 
 ## 安裝
 
+### 方法 A：以資訊清單網址安裝（推薦）
+
+在 Foundry 的 **設定 → 附加模組 → 安裝模組** 視窗，將以下資訊清單網址貼到最下方的 **Manifest URL** 欄位後按安裝：
+
+```
+https://raw.githubusercontent.com/ericwang01129/fvtt-CCF-like-UI/main/module.json
+```
+
+### 方法 B：手動安裝
+
 1. 將 `ccf-ui-v11` 資料夾放入 Foundry 的 `Data/modules/` 目錄
 2. 啟動 Foundry，在世界中啟用「CCF-like UI (v11)」模組
-3. （選用）一併安裝 **Simple Message Window** 與 **Stylish Action HUD** 以獲得完整體驗
+
+> （選用）一併安裝 **Simple Message Window** 與 **Stylish Action HUD** 以獲得完整體驗。
 
 ---
 
