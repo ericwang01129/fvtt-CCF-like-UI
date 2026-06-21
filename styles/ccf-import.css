@@ -6,6 +6,10 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
+    /* The Scenes directory is a `.flexcol`, whose core rule
+       `.flexcol > * { flex: 1 }` would stretch this button to fill the whole
+       column. Pin it to its content height so it stays a single text line. */
+    flex: 0 0 auto;
     width: calc(100% - 8px);
     margin: 4px;
     padding: 4px 8px;

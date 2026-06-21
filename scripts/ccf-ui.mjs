@@ -52,6 +52,45 @@ function applyTabVisibility() {
   }
 }
 
+// Foundry only lists a scene in a player's top navigation bar when BOTH the
+// scene's "Show in Navigation" toggle is on AND the player has ≥LIMITED
+// permission (SceneNavigation.prototype.scenes → `s.navigation && s.visible`).
+// GMs additionally see whatever scene they are currently viewing, so a GM can
+// have a populated nav while every player's is empty — the bar then collapses
+// to zero height and players see nothing at the top.
+//
+// This module's intent is that scene *ownership* alone drives what players can
+// navigate to. So for players (when active and the setting is on) we relax the
+// scene set to "every scene the player can at least see" — dropping the
+// per-scene nav toggle but KEEPING the permission check. GMs and the original
+// behaviour are untouched. The patch wraps the prototype getter once.
+function installPlayerNavPatch() {
+  if (typeof SceneNavigation === "undefined") return;
+  const proto = SceneNavigation.prototype;
+  if (proto._ccfScenesPatched) return;
+  const desc = Object.getOwnPropertyDescriptor(proto, "scenes");
+  if (!desc?.get) return;
+  const origGet = desc.get;
+  Object.defineProperty(proto, "scenes", {
+    configurable: true,
+    get() {
+      let byPermission = false;
+      try {
+        byPermission = shouldApply() && !game.user.isGM
+          && game.settings.get(MODULE_ID, "playerNavByPermission");
+      } catch (e) {
+        // settings not ready yet; fall back to core behaviour
+      }
+      if (!byPermission) return origGet.call(this);
+      // `s.visible` === testUserPermission(game.user, "LIMITED").
+      const scenes = game.scenes.filter(s => s.visible || s.active || s.isView);
+      scenes.sort((a, b) => a.navOrder - b.navOrder);
+      return scenes;
+    }
+  });
+  proto._ccfScenesPatched = true;
+}
+
 function lockTokenSelect() {
   if (!shouldApply()) return;
   if (!canvas?.ready) return;
@@ -103,6 +142,18 @@ Hooks.once("init", () => {
     }
   });
 
+  // Drive player scene-navigation by permission instead of each scene's
+  // "Show in Navigation" toggle. World-scoped so the GM sets it once.
+  game.settings.register(MODULE_ID, "playerNavByPermission", {
+    name: "CCFUI.Settings.PlayerNavByPermission.Name",
+    hint: "CCFUI.Settings.PlayerNavByPermission.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => ui.nav?.render()
+  });
+
   // Per-tab sidebar visibility. World-scoped: the GM decides once and every
   // client applies the same result (onChange fires on all connected clients).
   for (const tab of SIDEBAR_TABS) {
@@ -120,6 +171,8 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   applyBodyClass();
+  installPlayerNavPatch();
+  ui.nav?.render();
   forceSmwOn();
   lockTokenSelect();
 });

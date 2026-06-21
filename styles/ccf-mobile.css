@@ -210,3 +210,10 @@ body.ccf-ui-mobile #ui-left {
 body.ccf-ui-mobile #ui-left > * {
     pointer-events: auto;
 }
+/* #navigation lives in #ui-top (non-interactive above). Re-enable pointer
+   events on the player's nav so they can still tap to switch scenes — the
+   GM's nav is hidden on mobile, so this only affects players. */
+body.ccf-ui-mobile:not(.ccf-ui-gm) #navigation,
+body.ccf-ui-mobile:not(.ccf-ui-gm) #navigation * {
+    pointer-events: auto !important;
+}

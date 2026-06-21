@@ -37,7 +37,8 @@ function getBackdropFor(scene) {
 //   - the area inside the scene rect where the scene background image
 //     is empty or has transparent pixels
 //     (handled by the sprite living in canvas.primary, sorted below the
-//      scene bg sprite via zIndex).
+//      scene bg sprite via elevation/sort — see attachBackdropSprite for
+//      why zIndex alone does NOT work inside the PrimaryCanvasGroup).
 // They share one PIXI.Texture so the image only has to decode once.
 function getBackdropContainers() {
   const out = [];
@@ -90,11 +91,36 @@ function attachBackdropSprite(scene) {
 
     // Force this sprite to the very bottom of the parent's z-sort so it
     // renders before the scene bg sprite and any tile in that container.
+    //
+    // IMPORTANT: the two parent containers sort their children differently.
+    //   - canvas.stage is a plain PIXI.Container → sorts by `zIndex`.
+    //   - canvas.primary is a PrimaryCanvasGroup, which OVERRIDES
+    //     sortChildren() and orders children by `elevation`, then
+    //     `constructor.PRIMARY_SORT_ORDER`, then `sort` — and ignores
+    //     `zIndex` entirely. The scene background mesh lives there with
+    //     elevation 0 / sort -9999999999. So a sprite carrying only
+    //     zIndex = -10000 is treated as sort 0 (> -9999999999) and the
+    //     custom sorter floats it ABOVE the scene background image, hiding
+    //     it. To keep the backdrop strictly beneath the scene background we
+    //     must match the background's elevation and use an even lower sort.
+    const isPrimary = container === canvas?.primary;
     sprite.zIndex = -10000;
+    if (isPrimary) {
+      sprite.elevation = container.background?.elevation ?? 0;
+      sprite.sort = -1e12; // below the scene background mesh's -9999999999
+    }
     if (typeof container.sortableChildren === "boolean") {
       container.sortableChildren = true;
     }
     container.addChildAt(sprite, 0);
+
+    // PrimaryCanvasGroup re-runs its custom sort on every refresh and would
+    // otherwise undo our insertion order; force it to settle the sprite
+    // below the background right now using the elevation/sort set above.
+    if (isPrimary && typeof container.sortChildren === "function") {
+      container.sortDirty = true;
+      container.sortChildren();
+    }
 
     updateBackdropSpriteViewport(sprite);
 

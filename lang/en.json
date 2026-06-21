@@ -14,6 +14,8 @@
   "CCFUI.Settings.Tab.Cards.Name": "Show sidebar tab: Card Stacks",
   "CCFUI.Settings.Tab.Playlists.Name": "Show sidebar tab: Playlists",
   "CCFUI.Settings.Tab.Compendium.Name": "Show sidebar tab: Compendium Packs",
+  "CCFUI.Settings.PlayerNavByPermission.Name": "Player scene-nav by permission",
+  "CCFUI.Settings.PlayerNavByPermission.Hint": "When on, a player's top scene-navigation bar lists every scene they have at least Limited ownership of, regardless of each scene's \"Show in Navigation\" toggle. This lets you control player navigation purely through scene ownership. When off, Foundry's default applies (the scene must have \"Show in Navigation\" enabled AND the player must have permission).",
   "CCFUI.Settings.MobileMode.Name": "Mobile mode",
   "CCFUI.Settings.MobileMode.Hint": "Top half of the screen shows the full canvas (locked-center, fit-to-width); bottom half is the chat sidebar with a 1.5-line input; the Stylish Action HUD is overlaid bottom-right. Auto detects mobile via viewport width and touch input.",
   "CCFUI.Settings.MobileMode.Auto": "Auto-detect",

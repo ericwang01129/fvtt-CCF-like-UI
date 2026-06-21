@@ -14,6 +14,8 @@
   "CCFUI.Settings.Tab.Cards.Name": "顯示側邊欄分頁：牌組",
   "CCFUI.Settings.Tab.Playlists.Name": "顯示側邊欄分頁：播放清單",
   "CCFUI.Settings.Tab.Compendium.Name": "顯示側邊欄分頁：合輯包",
+  "CCFUI.Settings.PlayerNavByPermission.Name": "玩家場景導航依權限顯示",
+  "CCFUI.Settings.PlayerNavByPermission.Hint": "開啟時，玩家上方的場景導航列會列出該玩家擁有至少「有限（Limited）」權限的所有場景，無論各場景的「在導航顯示（Show in Navigation）」是否勾選。如此即可純粹透過場景擁有權來控制玩家可導航的場景。關閉時則套用 Foundry 預設行為（場景需勾選「在導航顯示」且玩家需具備權限）。",
   "CCFUI.Settings.MobileMode.Name": "手機模式",
   "CCFUI.Settings.MobileMode.Hint": "上半螢幕顯示整張畫布並鎖定中心，下半螢幕為聊天視窗（1.5 行輸入），右下角疊上 Stylish Action HUD。Auto 會依據視窗寬度與觸控偵測自動切換。",
   "CCFUI.Settings.MobileMode.Auto": "自動偵測",

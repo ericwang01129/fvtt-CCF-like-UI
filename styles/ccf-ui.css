@@ -6,18 +6,18 @@ body.ccf-ui-active #controls {
     display: none !important;
 }
 
-/* The scene-controls block sits inside #ui-left alongside #navigation; collapse
-   the empty space it leaves behind so the canvas is not pushed sideways. */
+/* #controls and #players live inside #ui-left; with #controls hidden we make
+   the (now mostly empty) left column non-interactive so it never eats canvas
+   clicks. NOTE: #navigation is NOT in #ui-left — in v11 it lives in
+   #ui-middle > #ui-top — so it is handled separately by the player-nav rules
+   below, not here. */
 body.ccf-ui-active #ui-left {
     pointer-events: none;
 }
-body.ccf-ui-active #ui-left > #navigation {
-    pointer-events: auto;
-}
 
-/* Make sure the scene navigation bar stays visible & interactive for players
-   on desktop, even though we hide #controls and zero out #ui-left's pointer
-   events above. Scoped to non-GM so the GM's own UI is unaffected. */
+/* Make sure the scene navigation bar stays visible & interactive for players,
+   even though we hide #controls. Scoped to non-GM so the GM's own UI is
+   unaffected. */
 body.ccf-ui-active:not(.ccf-ui-gm) #navigation {
     display: flex !important;
     visibility: visible !important;
