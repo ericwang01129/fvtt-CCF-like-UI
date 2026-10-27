@@ -7,7 +7,7 @@
       "name": "ericwang01129"
     }
   ],
-  "version": "1.0.0",
+  "version": "1.1.0",
   "compatibility": {
     "minimum": "11",
     "verified": "11.315",
@@ -19,7 +19,8 @@
     "scripts/ccf-backdrop.mjs",
     "scripts/ccf-import.mjs",
     "scripts/ccf-apng-webm.mjs",
-    "scripts/ccf-chatlog-export.mjs"
+    "scripts/ccf-chatlog-export.mjs",
+    "scripts/ccf-chat-notify.mjs"
   ],
   "styles": [
     "styles/ccf-ui.css",

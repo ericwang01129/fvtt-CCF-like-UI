@@ -10,9 +10,11 @@
  * its classes ES-module private, so the routing rules from its
  * `module/messageFilter.js` are re-implemented below.
  *
- * Output mirrors `ref/天使の魔眼は死を殺す[all].html` byte-for-byte in shape:
- * one `<p style="color:#xxxxxx;">` per message holding three `<span>`s
- * (channel tag / speaker / body), no CSS classes, no timestamps.
+ * Output mirrors `ref/我們的伊甸園_html_log/*.html` (ccfolia's styled log) in
+ * shape: one `<article class="message">` per message with an avatar (inlined
+ * as a base64 PNG through `.avatar-image-N` CSS classes), speaker, timestamp,
+ * text and an optional `roll-result` line. The [すべて] file also tags every
+ * message with its channel name; per-channel files do not.
  *
  * Like the other files in this module this one is self-contained: it does not
  * import sibling ESM files and exports nothing — it only registers its own
@@ -22,7 +24,12 @@
 const MODULE_ID = "ccf-ui-v11";
 const MCT_ID = "multiple-chat-tabs";
 const FALLBACK_COLOR = "#888888";
+const FALLBACK_TAB_ID = "main";
 const FALLBACK_TAB_LABEL = "main";
+// ccfolia names the all-channels log "[すべて]" whatever the UI language.
+const ALL_LABEL = "すべて";
+const AVATAR_SIZE = 80;
+const AVATAR_TIMEOUT_MS = 10000;
 
 // --- Multiple Chat Tabs: tab list -------------------------------------------
 function getTabs() {
@@ -112,13 +119,14 @@ function isMessageInTab(message, tab, visibleTabIds) {
   return visibleTabIds.has(tab.id);
 }
 
-// --- Message → ccfolia line -------------------------------------------------
+// --- Message → ccfolia article ----------------------------------------------
 function escapeHtml(text) {
-  return text
+  return String(text)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 const BLOCK_SELECTOR = "p, div, li, tr, h1, h2, h3, h4, h5, h6, hr, section, article, header, footer";
@@ -137,38 +145,88 @@ function stripHtml(html) {
     .trim();
 }
 
+// ccfolia writes "1D10+20", Foundry "1d10 + 20".
+function toCcfoliaFormula(formula) {
+  return String(formula ?? "")
+    .replace(/(\d*)d(\d|%|F)/g, "$1D$2")
+    .replace(/\s*([+\-*/])\s*/g, "$1");
+}
+
+function getTermClasses() {
+  // v12 namespaces the term classes; v11 only has the globals.
+  const terms = foundry.dice?.terms ?? globalThis;
+  return { DiceTerm: terms.DiceTerm, OperatorTerm: terms.OperatorTerm, NumericTerm: terms.NumericTerm };
+}
+
+// "3[3]+20" for 1d10+20 — each die term as total[faces], like ccfolia.
+function formatRollDetail(roll) {
+  const { DiceTerm, OperatorTerm, NumericTerm } = getTermClasses();
+  return roll.terms
+    .map((term) => {
+      if (DiceTerm && term instanceof DiceTerm) {
+        const faces = term.results.filter((r) => r.active !== false).map((r) => r.result);
+        return `${term.total}[${faces.join(",")}]`;
+      }
+      if (OperatorTerm && term instanceof OperatorTerm) return term.operator;
+      if (NumericTerm && term instanceof NumericTerm) return String(term.number);
+      return term.expression ?? String(term.total ?? "");
+    })
+    .join("")
+    .trim();
+}
+
+function isSingleDie(roll) {
+  const { DiceTerm } = getTermClasses();
+  const [term, ...rest] = roll.terms;
+  return !rest.length && DiceTerm && term instanceof DiceTerm && term.results.length === 1;
+}
+
 function renderRolls(message) {
   const rolls = message.rolls ?? [];
-  if (!rolls.length) return "";
-  const flavor = stripHtml(message.flavor).replace(/\n+/g, " ").trim();
   const parts = [];
   for (const roll of rolls) {
     try {
-      const formula = roll.formula ?? "";
-      const result = roll._evaluated ? String(roll.result ?? "").trim() : "";
+      const formula = toCcfoliaFormula(roll.formula);
       const total = roll.total ?? "";
-      // ccfolia writes "cc<=50 SC (1D100<=50) ＞ 81 ＞ 失敗" using a full-width ＞.
+      // ccfolia: "(1D10+20) ＞ 3[3]+20 ＞ 23", but "(1D100) ＞ 27" for one die.
       let line = formula ? `(${formula})` : "";
-      if (result && result !== String(total)) line += ` ＞ ${result}`;
+      if (roll._evaluated && !isSingleDie(roll)) {
+        const detail = formatRollDetail(roll);
+        if (detail && detail !== String(total)) line += ` ＞ ${detail}`;
+      }
       parts.push(`${line} ＞ ${total}`.trim());
     } catch (err) {
       console.warn("[ccf-chatlog-export] cannot render roll", err);
     }
   }
-  if (!parts.length) return "";
-  const body = parts.join("\n");
-  return flavor ? `${flavor} ${body}` : body;
+  return parts.join("\n");
 }
 
-function getMessageText(message) {
+// First match wins, so the "大" variants must precede plain 成功/失敗.
+const ROLL_OUTCOMES = [
+  ["critical", /大成功|クリティカル|critical/i],
+  ["fumble", /大失敗|ファンブル|fumble/i],
+  ["failure", /失敗|failure|failed/i],
+  ["success", /成功|success/i],
+];
+
+function getRollOutcome(text) {
+  return ROLL_OUTCOMES.find(([, pattern]) => pattern.test(text))?.[0] ?? "";
+}
+
+function getMessageParts(message) {
   const content = stripHtml(message.content);
   const rollText = renderRolls(message);
-  if (!rollText) return content;
-  // A bare roll renders its content as just the total; a system card renders a
-  // whole readable block. Replace the former, keep the latter.
+  if (!rollText) return { text: content, rollText: "", rollClass: "" };
+  // A bare roll renders its content as just the total, so show the flavor (or
+  // the formula, like ccfolia's typed command) instead; a system card renders
+  // a whole readable block, so keep it.
   const compact = content.replace(/\s+/g, " ").trim();
-  if (!compact || /^[\d\s+\-*/().,[\]]+$/.test(compact)) return rollText;
-  return content;
+  const isBareRoll = !compact || /^[\d\s+\-*/().,[\]]+$/.test(compact);
+  const text = isBareRoll
+    ? stripHtml(message.flavor) || toCcfoliaFormula(message.rolls[0]?.formula)
+    : content;
+  return { text, rollText, rollClass: getRollOutcome(`${text}\n${rollText}`) };
 }
 
 function normalizeColor(value) {
@@ -183,39 +241,303 @@ function getMessageColor(message) {
   return normalizeColor(user?.color) ?? FALLBACK_COLOR;
 }
 
-function renderMessageBlock(message, tabLabel) {
-  const color = getMessageColor(message);
-  const name = escapeHtml(message.alias ?? "");
-  const text = getMessageText(message);
-  const isRoll = !!message.isRoll;
-  // ccfolia trails plain text with a space but not dice results; match that.
-  const body = escapeHtml(text).replace(/\n/g, "<br>") + (isRoll ? "" : " ");
+function getHtmlLang() {
+  try {
+    return Intl.getCanonicalLocales(game.i18n.lang)[0] ?? "en";
+  } catch (err) {
+    return "en";
+  }
+}
+
+function createDateFormat(lang) {
+  const options = {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  };
+  try {
+    return new Intl.DateTimeFormat(lang, options);
+  } catch (err) {
+    return new Intl.DateTimeFormat("en", options);
+  }
+}
+
+// --- Avatars ----------------------------------------------------------------
+const DEFAULT_AVATARS = new Set(["icons/svg/mystery-man.svg", CONST.DEFAULT_TOKEN]);
+
+// ccfolia shows the character icon; the closest is the actor portrait.
+function getAvatarSrc(message) {
+  const speaker = message.speaker ?? {};
+  const token = speaker.token ? game.scenes.get(speaker.scene)?.tokens.get(speaker.token) : null;
+  const actor = token?.actor ?? (speaker.actor ? game.actors.get(speaker.actor) : null);
+  const src = actor?.img || token?.texture?.src || null;
+  return src && !DEFAULT_AVATARS.has(src) ? src : null;
+}
+
+function isVideoSrc(src) {
+  const helper = foundry.helpers?.media?.VideoHelper ?? globalThis.VideoHelper;
+  return !!helper?.hasVideoExtension?.(src);
+}
+
+function loadMedia(src) {
+  const load = new Promise((resolve, reject) => {
+    if (isVideoSrc(src)) {
+      const video = document.createElement("video");
+      video.crossOrigin = "anonymous";
+      video.muted = true;
+      video.preload = "auto";
+      video.onloadeddata = () => resolve(video);
+      video.onerror = () => reject(new Error(`cannot load ${src}`));
+      video.src = src;
+    } else {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`cannot load ${src}`));
+      img.src = src;
+    }
+  });
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(`timed out loading ${src}`)), AVATAR_TIMEOUT_MS)
+  );
+  return Promise.race([load, timeout]);
+}
+
+// Square-crops the image (first frame for video) to an 80×80 PNG data URL;
+// null when it cannot be loaded or the canvas is tainted by a foreign origin.
+async function rasterizeAvatar(src) {
+  try {
+    const media = await loadMedia(src);
+    const width = media.videoWidth || media.naturalWidth || AVATAR_SIZE;
+    const height = media.videoHeight || media.naturalHeight || AVATAR_SIZE;
+    const scale = Math.max(AVATAR_SIZE / width, AVATAR_SIZE / height);
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = AVATAR_SIZE;
+    const ctx = canvas.getContext("2d");
+    const drawWidth = width * scale;
+    const drawHeight = height * scale;
+    ctx.drawImage(media, (AVATAR_SIZE - drawWidth) / 2, (AVATAR_SIZE - drawHeight) / 2, drawWidth, drawHeight);
+    return canvas.toDataURL("image/png");
+  } catch (err) {
+    console.warn("[ccf-chatlog-export] avatar skipped", err);
+    return null;
+  }
+}
+
+async function loadAvatars(entries) {
+  const srcs = [...new Set(entries.map((entry) => entry.avatarSrc).filter(Boolean))];
+  const dataUrls = await Promise.all(srcs.map(rasterizeAvatar));
+  return new Map(srcs.map((src, i) => [src, dataUrls[i]]));
+}
+
+// --- HTML -------------------------------------------------------------------
+function toEntry(message, dateFormat) {
+  const date = new Date(message.timestamp ?? 0);
+  return {
+    message,
+    system: !String(message.alias ?? "").trim(),
+    speaker: message.alias ?? "",
+    color: getMessageColor(message),
+    iso: date.toISOString(),
+    time: dateFormat.format(date),
+    edited: !!message.flags?.chatedit?.edited,
+    avatarSrc: getAvatarSrc(message),
+    ...getMessageParts(message),
+  };
+}
+
+// `channel` is the {id, label} the message is filed under in this file;
+// `showChannel` is only set for the [すべて] file.
+function renderArticle(entry, channel, showChannel, avatarClass) {
+  const channelId = escapeHtml(channel.id);
+  const channelName = `<span class="channel-name">[${escapeHtml(channel.label)}]</span>`;
+  const text = `<div class="message-text">${escapeHtml(entry.text)}</div>`;
+
+  if (entry.system) {
+    const header = showChannel
+      ? `        <div class="message-header">\n` +
+        `          ${channelName}\n` +
+        `        </div>\n\n`
+      : "";
+    return (
+      `\n      <article class="message system" data-channel="${channelId}">\n\n` +
+      header +
+      `        ${text}\n` +
+      `      </article>\n\n`
+    );
+  }
+
+  const avatar = avatarClass
+    ? `<span class="avatar ${avatarClass}" aria-hidden="true"></span>`
+    : `<span class="avatar-spacer" aria-hidden="true"></span>`;
+  const rollClass = entry.rollClass ? ` ${entry.rollClass}` : "";
   return (
-    `\n<p style="color:${color};">\n` +
-    `  <span> [${escapeHtml(tabLabel)}]</span>\n` +
-    `  <span>${name}</span> :\n` +
-    `  <span>\n` +
-    `    ${body}\n` +
-    `  </span>\n` +
-    `</p>\n`
+    `\n      <article class="message" data-channel="${channelId}">\n\n` +
+    `        ${avatar}\n\n` +
+    `        <div class="message-content">\n` +
+    `          <div class="message-header">\n` +
+    `            <span class="speaker" style="--speaker-color:${entry.color}">${escapeHtml(entry.speaker)}</span>\n` +
+    `            <time class="timestamp" datetime="${entry.iso}">${escapeHtml(entry.time)}</time>\n\n` +
+    (showChannel ? `            ${channelName}\n\n` : "") +
+    `\n` +
+    (entry.edited
+      ? `            <span class="edited">${escapeHtml(game.i18n.localize("CCFUI.Export.Edited"))}</span>\n\n`
+      : "") +
+    `          </div>\n` +
+    `          ${text}\n\n` +
+    (entry.rollText
+      ? `          <span class="roll-result${rollClass}">${escapeHtml(entry.rollText)}</span>\n\n`
+      : "") +
+    `        </div>\n` +
+    `      </article>\n\n`
   );
 }
 
-const HTML_HEAD =
-  `<!DOCTYPE html>\n` +
-  `<html lang="ja">\n` +
-  `  <head>\n` +
-  `    <meta charset="UTF-8" />\n` +
-  `    <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n` +
-  `    <meta http-equiv="X-UA-Compatible" content="ie=edge" />\n` +
-  `    <title>ccfolia - logs</title>\n` +
-  `  </head>\n` +
-  `  <body>\n    \n\n`;
+const STYLE_HEAD = `
+      :root {
+        color-scheme: dark;
+        color: #eee;
+        background: #121212;
+      }
 
-const HTML_TAIL = `\n  </body>\n</html>\n`;
+      * {
+        box-sizing: border-box;
+      }
 
-function buildHtml(blocks) {
-  return HTML_HEAD + blocks.join("") + HTML_TAIL;
+      body {
+        min-width: 280px;
+        margin: 0;
+        background: #121212;
+      }
+
+      .message-list {
+        width: 100%;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 24px 48px;
+      }
+
+      .log-title {
+        margin: 24px 0;
+        font-size: 24px;
+      }
+
+      .message {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        column-gap: 12px;
+        padding: 16px 0;
+        border-bottom: 1px solid #262626;
+      }
+
+      .message.system {
+        display: block;
+        padding-left: 52px;
+        color: #888;
+      }
+
+      .avatar,
+      .avatar-spacer {
+        width: 40px;
+        height: 40px;
+      }
+
+      .avatar {
+        display: block;
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+      }
+
+`;
+
+const STYLE_TAIL = `
+
+      .message-content {
+        min-width: 0;
+      }
+
+      .message-header {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .speaker {
+        color: var(--speaker-color);
+        font-size: 14px;
+        font-weight: bold;
+      }
+
+      .timestamp,
+      .edited,
+      .channel-name {
+        color: #888;
+        font-size: 12px;
+      }
+
+      .message-text,
+      .roll-result {
+        font-size: 16px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+      }
+
+      .roll-result {
+        display: block;
+        color: #888;
+      }
+
+      .roll-result.success,
+      .roll-result.critical {
+        color: #2196f3;
+      }
+
+      .roll-result.failure,
+      .roll-result.fumble {
+        color: #dc004e;
+      }
+`;
+
+// `items` is [{entry, channel}] in file order. Avatar classes are numbered per
+// file in order of first appearance, one per distinct image.
+function buildHtml({ title, lang, items, showChannel, avatars }) {
+  const avatarIndex = new Map();
+  const articles = items.map(({ entry, channel }) => {
+    const dataUrl = avatars.get(entry.avatarSrc);
+    let avatarClass = null;
+    if (dataUrl && !entry.system) {
+      if (!avatarIndex.has(dataUrl)) avatarIndex.set(dataUrl, avatarIndex.size);
+      avatarClass = `avatar-image-${avatarIndex.get(dataUrl)}`;
+    }
+    return renderArticle(entry, channel, showChannel, avatarClass);
+  });
+  const avatarStyles = [...avatarIndex]
+    .map(([dataUrl, i]) => `\n      .avatar-image-${i} { background-image: url("${dataUrl}"); }\n`)
+    .join("");
+  const safeTitle = escapeHtml(title);
+
+  return (
+    `<!DOCTYPE html>\n` +
+    `<html lang="${escapeHtml(lang)}">\n` +
+    `  <head>\n` +
+    `    <meta charset="UTF-8" />\n` +
+    `    <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n` +
+    `    <title>${safeTitle}</title>\n` +
+    `    <style>` +
+    STYLE_HEAD +
+    avatarStyles +
+    STYLE_TAIL +
+    `    </style>\n` +
+    `  </head>\n` +
+    `  <body>\n` +
+    `    <main class="message-list">\n` +
+    `      <h1 class="log-title">${safeTitle}</h1>\n\n` +
+    articles.join("\n") +
+    `\n    </main>\n` +
+    `  </body>\n` +
+    `</html>`
+  );
 }
 
 // --- Store-only ZIP writer --------------------------------------------------
@@ -323,53 +645,83 @@ function getSortedMessages() {
   return [...game.messages.contents].sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
 }
 
-function buildExportFiles() {
-  const base = sanitizeFileName(game.world?.title ?? game.world?.id ?? "foundry");
+const FALLBACK_CHANNEL = { id: FALLBACK_TAB_ID, label: FALLBACK_TAB_LABEL };
+
+// Cheap pass shared by the dialog summary and the export: channel routing
+// and file names only, no message rendering.
+function planExport() {
+  const worldTitle = game.world?.title ?? game.world?.id ?? "foundry";
+  const base = sanitizeFileName(worldTitle);
   const allTabs = getTabs();
   const messages = getSortedMessages();
 
-  const allBlocks = [];
-  const perTabBlocks = allTabs.map(() => []);
-
-  for (const message of messages) {
-    if (!allTabs.length) {
-      allBlocks.push(renderMessageBlock(message, FALLBACK_TAB_LABEL));
-      continue;
-    }
+  const routes = messages.map((message) => {
+    if (!allTabs.length) return { message, primary: FALLBACK_CHANNEL, tabs: [] };
     const visibleTabIds = getVisibleTabsForMessage(message, allTabs);
-    // The [all] file tags each line with the first owning tab, in tab order.
+    // The [すべて] file tags each message with the first owning tab, in tab order.
     const primary = allTabs.find((tab) => visibleTabIds.has(tab.id)) ?? allTabs[0];
-    allBlocks.push(renderMessageBlock(message, primary?.label ?? FALLBACK_TAB_LABEL));
-    allTabs.forEach((tab, i) => {
-      if (isMessageInTab(message, tab, visibleTabIds)) {
-        perTabBlocks[i].push(renderMessageBlock(message, tab.label));
-      }
-    });
-  }
+    const tabs = allTabs.filter((tab) => isMessageInTab(message, tab, visibleTabIds));
+    return { message, primary, tabs };
+  });
 
-  const files = [{ name: `${base}[all].html`, content: buildHtml(allBlocks) }];
+  const fileNames = [
+    `${base}[${ALL_LABEL}].html`,
+    ...allTabs.map((tab) => `${base}[${sanitizeFileName(tab.label)}].html`),
+  ];
+
+  return { worldTitle, base, allTabs, routes, fileNames };
+}
+
+async function buildExportFiles() {
+  const { worldTitle, base, allTabs, routes, fileNames } = planExport();
+  const lang = getHtmlLang();
+  const dateFormat = createDateFormat(lang);
+
+  const entries = new Map(routes.map(({ message }) => [message, toEntry(message, dateFormat)]));
+  const avatars = await loadAvatars([...entries.values()]);
+
+  const files = [
+    {
+      name: fileNames[0],
+      content: buildHtml({
+        title: `${worldTitle} [${ALL_LABEL}]`,
+        lang,
+        items: routes.map(({ message, primary }) => ({ entry: entries.get(message), channel: primary })),
+        showChannel: true,
+        avatars,
+      }),
+    },
+  ];
   allTabs.forEach((tab, i) => {
     files.push({
-      name: `${base}[${sanitizeFileName(tab.label)}].html`,
-      content: buildHtml(perTabBlocks[i]),
+      name: fileNames[i + 1],
+      content: buildHtml({
+        title: `${worldTitle} [${tab.label}]`,
+        lang,
+        items: routes
+          .filter(({ tabs }) => tabs.includes(tab))
+          .map(({ message }) => ({ entry: entries.get(message), channel: tab })),
+        showChannel: false,
+        avatars,
+      }),
     });
   });
 
-  return { base, files, messageCount: messages.length, tabCount: allTabs.length };
+  return { base, files, messageCount: routes.length };
 }
 
-function runExport() {
+async function runExport() {
   if (!game.user?.isGM) {
     ui.notifications?.warn(game.i18n.localize("CCFUI.Export.NoPerm"));
     return;
   }
   const t0 = performance.now();
   try {
-    const { base, files, messageCount } = buildExportFiles();
-    if (!messageCount) {
+    if (!game.messages.size) {
       ui.notifications?.warn(game.i18n.localize("CCFUI.Export.NoMessages"));
       return;
     }
+    const { base, files, messageCount } = await buildExportFiles();
     if (files.length === 1) {
       saveDataToFile(files[0].content, "text/html", files[0].name);
     } else {
@@ -392,13 +744,13 @@ function openExportDialog() {
     ui.notifications?.warn(game.i18n.localize("CCFUI.Export.NoPerm"));
     return;
   }
-  const { files, messageCount, tabCount } = buildExportFiles();
-  const list = files.map((f) => `<li>${escapeHtml(f.name)}</li>`).join("");
-  const notice = tabCount
+  const { allTabs, routes, fileNames } = planExport();
+  const list = fileNames.map((name) => `<li>${escapeHtml(name)}</li>`).join("");
+  const notice = allTabs.length
     ? ""
     : `<p class="notification warning">${game.i18n.localize("CCFUI.Export.NoTabs")}</p>`;
   const content =
-    `<p>${game.i18n.format("CCFUI.Export.Summary", { count: messageCount, files: files.length })}</p>` +
+    `<p>${game.i18n.format("CCFUI.Export.Summary", { count: routes.length, files: fileNames.length })}</p>` +
     notice +
     `<ul class="ccf-export-file-list">${list}</ul>`;
 
