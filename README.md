@@ -13,7 +13,7 @@
 
 ## 功能總覽
 
-模組由四個彼此獨立的腳本組成，各自註冊自己的 hook，不互相 import：
+模組由五個彼此獨立的腳本組成，各自註冊自己的 hook，不互相 import：
 
 | 腳本 | 功能 |
 | --- | --- |
@@ -21,6 +21,7 @@
 | `ccf-mobile.mjs` | 手機模式：上畫布／下聊天版面、輸入框行為、彈窗抑制 |
 | `ccf-backdrop.mjs` | 每個場景可設定模糊底圖，填滿背景顏色區域 |
 | `ccf-import.mjs` | 將 CCF 格式房間（`.zip`）匯入成 Foundry 場景 |
+| `ccf-chatlog-export.mjs` | 將聊天紀錄匯出成 ccfolia 格式的 HTML log（依聊天頻道分檔） |
 
 ### 1. 類 CCF 介面（核心）
 
@@ -82,6 +83,26 @@ GM 可在 **場景目錄** 上方看到「匯入 CCF 房間」按鈕，選擇 CC
 - 內建極簡 ZIP 解析器，使用瀏覽器原生 `DecompressionStream`（v11 的 Electron／Chromium ≥ 113），無需 JSZip
 - 場景尺寸取「場地 + 所有 marker／item」的外框，避免實體落在場地外時被 Foundry 的 padding 上限裁切
 - 圖片資產上傳至 `worlds/<world>/ccf-rooms/<importId>/`
+
+### 5. 匯出聊天紀錄（ccfolia 格式）
+
+GM 可在 **設定 → 設定模組 → CCF-like UI (v11)** 找到「匯出聊天紀錄…」按鈕。按下後會先顯示將產生的檔案清單，確認即開始下載。
+
+輸出格式完全對齊 ccfolia 的 log 匯出：每則訊息一個 `<p style="color:#xxxxxx;">`，內含三個 `<span>`（`[頻道]`、發言者、內容），無 CSS class、無時間戳，換行以 `<br>` 表示。
+
+| 項目 | 對應 |
+| --- | --- |
+| 頻道標記 `[…]` | **Multiple Chat Tabs** 的分頁名稱 |
+| 發言者 | `message.alias`（角色名 → 演員名 → 使用者名） |
+| 行內顏色 | 該則訊息作者的 **Foundry 使用者顏色**（無值時 `#888888`） |
+| 內容 | 訊息 HTML 轉純文字；擲骰訊息改以 `骰面說明 (公式) ＞ 結果` 呈現 |
+
+匯出細節：
+
+- 匯出 `game.messages` **全部**訊息（含密語與 blind roll），依時間排序；僅限 GM。
+- 頻道分別讀自 **Multiple Chat Tabs**（`multiple-chat-tabs`）：訊息的 `flags["multiple-chat-tabs"].sourceTab` 旗標，以及 world 設定 `multiple-chat-tabs.tabs`。該模組的過濾規則（密語分頁完全比對、`force` 的 `move`／`duplicate`、無旗標時退回第一個分頁、`showAllMessages`）皆已忠實重現。
+- 產生 `<世界名>[all].html`（所有訊息，逐行標註頻道）加上每個頻道各一個檔，打包成 `<世界名>-chatlog.zip` 一次下載。ZIP 為自製的 store-only 寫入器（`ccf-import.mjs` 的反向操作），檔名以 UTF-8 旗標寫入，中文分頁名不會亂碼。
+- 採**軟相依**：未安裝或停用 Multiple Chat Tabs 時，改為直接下載單一 `<世界名>[all].html`，所有行標記為 `[main]`。
 
 ---
 

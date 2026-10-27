@@ -17,13 +17,16 @@
     "scripts/ccf-ui.mjs",
     "scripts/ccf-mobile.mjs",
     "scripts/ccf-backdrop.mjs",
-    "scripts/ccf-import.mjs"
+    "scripts/ccf-import.mjs",
+    "scripts/ccf-apng-webm.mjs",
+    "scripts/ccf-chatlog-export.mjs"
   ],
   "styles": [
     "styles/ccf-ui.css",
     "styles/ccf-mobile.css",
     "styles/ccf-backdrop.css",
-    "styles/ccf-import.css"
+    "styles/ccf-import.css",
+    "styles/ccf-apng-webm.css"
   ],
   "languages": [
     {
