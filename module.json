@@ -20,14 +20,19 @@
     "scripts/ccf-import.mjs",
     "scripts/ccf-apng-webm.mjs",
     "scripts/ccf-chatlog-export.mjs",
-    "scripts/ccf-chat-notify.mjs"
+    "scripts/ccf-chat-notify.mjs",
+    "scripts/ccf-scene-states.mjs",
+    "scripts/ccf-theatre-holo.mjs",
+    "scripts/ccf-theatre-token.mjs"
   ],
   "styles": [
     "styles/ccf-ui.css",
     "styles/ccf-mobile.css",
     "styles/ccf-backdrop.css",
     "styles/ccf-import.css",
-    "styles/ccf-apng-webm.css"
+    "styles/ccf-apng-webm.css",
+    "styles/ccf-scene-states.css",
+    "styles/ccf-theatre-holo.css"
   ],
   "languages": [
     {

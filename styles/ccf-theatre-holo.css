@@ -1,0 +1,93 @@
+/* ccf-theatre-holo.css — Theatre Inserts integration (ccf-theatre-holo.mjs):
+   the hologram-style toggle in the emote menu, the sci-fi comms text box,
+   and hiding the narrator button. */
+
+/* 1. Emote menu toggle, right of the font-colour picker. The font <select>
+      may shrink to make room in the 300px menu. */
+.theatre-emote-menu .emote-box .emotebar .fontselect {
+    min-width: 0;
+}
+
+.theatre-emote-menu .emote-box .emotebar .ccf-holo-toggle {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 0 0 2px;
+    font-size: 18px;
+    color: #9aa;
+    border: 1px solid #222;
+    cursor: pointer;
+}
+
+.theatre-emote-menu .emote-box .emotebar .ccf-holo-toggle.active {
+    color: #8fe4ff;
+    border-color: rgba(110, 210, 255, 0.8);
+    text-shadow: 0 0 6px #4fc8ff, 0 0 12px #4fc8ff;
+    box-shadow: inset 0 0 8px rgba(79, 200, 255, 0.6);
+}
+
+.theatre-emote-menu .emote-box .emotebar .ccf-holo-toggle.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* 2. Sci-fi comms text box. Theatre writes colour, background and
+      box-shadow inline on every message, hence !important. Text colour is
+      set on the box only, so characters with their own formatting colour
+      keep it.
+      Theatre fades boxes in and out with inline `opacity`, and its
+      auto-scroll reads scrollHeight, so the animations here only touch
+      `filter` and the first background layer's position — never opacity or
+      extra positioned children. background-position is deliberately not
+      !important: an !important declaration would beat the animation. */
+#theatre-bar .ccf-holo-box {
+    background-color: transparent !important;
+    background-image:
+        linear-gradient(transparent, rgba(140, 225, 255, 0.14), transparent),
+        repeating-linear-gradient(0deg, rgba(120, 220, 255, 0.07) 0 1px, transparent 1px 3px),
+        linear-gradient(rgba(8, 40, 72, 0.62), rgba(4, 22, 46, 0.5)) !important;
+    background-size: 100% 30%, auto, auto !important;
+    background-repeat: no-repeat, repeat, no-repeat !important;
+    border: 1px solid rgba(110, 210, 255, 0.55) !important;
+    border-left: 3px solid rgba(110, 210, 255, 0.85) !important;
+    border-radius: 2px !important;
+    box-shadow:
+        0 0 12px rgba(79, 200, 255, 0.45),
+        inset 0 0 18px rgba(79, 200, 255, 0.25) !important;
+    color: rgba(170, 235, 255, 0.92) !important;
+    text-shadow: 0 0 6px rgba(79, 200, 255, 0.9), 0 0 2px rgba(79, 200, 255, 0.9) !important;
+    animation:
+        ccf-holo-sweep 4s linear infinite,
+        ccf-holo-flicker 5s infinite;
+}
+
+/* Theatre's bar containers draw a denim frame with a drop shadow behind the
+   text boxes. Drop it when every text box in that bar is a hologram one; a
+   bar shared with normal-style boxes keeps it. Text boxes are the bars'
+   only children. */
+#theatre-prime-bar:has(> .ccf-holo-box):not(:has(> :not(.ccf-holo-box))),
+#theatre-second-bar:has(> .ccf-holo-box):not(:has(> :not(.ccf-holo-box))) {
+    background: none !important;
+    box-shadow: none !important;
+}
+
+/* A bright band slowly sweeping down the panel (first background layer). */
+@keyframes ccf-holo-sweep {
+    from { background-position: 0 -43%, 0 0, 0 0; }
+    to   { background-position: 0 143%, 0 0, 0 0; }
+}
+
+@keyframes ccf-holo-flicker {
+    0%, 92%, 94%, 97%, 100% { filter: none; }
+    93%                     { filter: brightness(0.8); }
+    96%                     { filter: brightness(0.9); }
+}
+
+/* 3. Narrator mode hidden (world setting "hideTheatreNarrator"). The button
+      only exists for GMs; ccf-theatre-holo.mjs also blocks Alt+N. */
+body.ccf-hide-theatre-narrator .theatre-control-btn:has(> .theatre-icon-narrator) {
+    display: none !important;
+}

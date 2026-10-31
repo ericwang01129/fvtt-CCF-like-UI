@@ -1,0 +1,112 @@
+/* ccf-scene-states.css — the CCF-style "scene list" window opened from the
+   Token controls by ccf-scene-states.mjs, and its edit dialog. */
+
+#ccf-scene-states .window-content {
+    padding: 0;
+    background: #1e1e1e;
+    color: #eee;
+}
+
+.ccf-ss-empty {
+    margin: 0;
+    padding: 16px;
+    color: #aaa;
+    line-height: 1.5;
+}
+
+.ccf-ss-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.ccf-ss-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 10px 4px 4px;
+    border-bottom: 1px solid #3a3a3a;
+}
+
+.ccf-ss-item.drag-over {
+    box-shadow: inset 0 2px 0 var(--color-border-highlight, #ff6400);
+}
+
+.ccf-ss-thumb {
+    flex: 0 0 88px;
+    width: 88px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #111;
+    color: #666;
+    font-size: 24px;
+}
+
+.ccf-ss-thumb img,
+.ccf-ss-thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+}
+
+.ccf-ss-info {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ccf-ss-name {
+    color: #fff;
+    font-size: var(--font-size-16, 16px);
+    text-decoration: underline;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ccf-ss-name:hover {
+    text-shadow: 0 0 8px var(--color-shadow-primary, #ff0000);
+}
+
+.ccf-ss-sub {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #aaa;
+    font-size: var(--font-size-13, 13px);
+    white-space: nowrap;
+}
+
+.ccf-ss-bgm {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ccf-ss-controls {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 10px;
+    font-size: 16px;
+}
+
+.ccf-ss-controls a {
+    color: #ccc;
+}
+
+.ccf-ss-controls a:hover {
+    color: #fff;
+    text-shadow: 0 0 8px var(--color-shadow-primary, #ff0000);
+}
+
+.ccf-ss-dialog textarea[name="script"] {
+    font-family: var(--font-mono, monospace);
+    font-size: var(--font-size-12, 12px);
+    min-height: 120px;
+    resize: vertical;
+}
